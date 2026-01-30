@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>动画代际表生成器 (CSV版)</title>
+  <title>动漫统计</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
@@ -180,7 +180,7 @@
       backgroundColor: "#f8f9fa"
     }).then(canvas => {
       const link = document.createElement('a');
-      link.download = `我的动画代际表_${new Date().getTime()}.png`;
+      link.download = `看番记录_${new Date().getTime()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       btn.textContent = "保存为图片分享";
