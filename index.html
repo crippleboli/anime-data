@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>动画代际表生成器 (CSV版)</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #f8f9fa;
+      --primary-red: #e74c3c;
+      --active-green: #2ecc71;
+      --border-color: #333;
+    }
+
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      margin: 0;
+    }
+
+    #capture-area {
+      background: white;
+      padding: 30px;
+      border: 2px solid var(--border-color);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: none; /* 初始隐藏，加载数据后显示 */
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 15px;
+      border-bottom: 3px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .header h1 { margin: 0; font-size: 24px; color: #222; }
+    .counter-box { font-size: 18px; font-weight: bold; }
+    #count-num { color: var(--active-green); font-size: 24px; }
+
+    table {
+      border-collapse: collapse;
+      table-layout: fixed;
+      width: 1000px;
+    }
+
+    td {
+      border: 1px solid #ccc;
+      height: 50px;
+      text-align: center;
+      font-size: 12px;
+      padding: 4px;
+      cursor: pointer;
+      transition: all 0.1s;
+      user-select: none;
+      word-break: break-all;
+      overflow: hidden;
+    }
+
+    .year-cell {
+      background-color: var(--primary-red);
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      width: 70px;
+      border: 1px solid var(--border-color);
+      cursor: default;
+    }
+
+    .anime-cell:hover { background-color: #f0f0f0; }
+    .anime-cell.selected {
+      background-color: var(--active-green) !important;
+      color: white;
+      font-weight: bold;
+    }
+
+    .controls { margin-top: 30px; display: none; }
+    .btn-save {
+      padding: 12px 40px;
+      font-size: 18px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div id="capture-area">
+  <div class="header">
+    <h1>bgm 历年top10</h1>
+    <div class="counter-box">我看过 <span id="count-num">0</span> 部动画</div>
+  </div>
+  <table id="anime-table"></table>
+</div>
+
+<div class="controls" id="save-box">
+  <button class="btn-save" onclick="saveAsImage()">保存为图片分享</button>
+</div>
+
+<script>
+  const table = document.getElementById('anime-table');
+  const captureArea = document.getElementById('capture-area');
+  const saveBox = document.getElementById('save-box');
+  const countNum = document.getElementById('count-num');
+
+  // 直接从仓库读取 CSV
+  const csvPath = './data/bgm_top10.csv'; // 相对路径，指向仓库 data 文件夹下
+
+  Papa.parse(csvPath, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      renderTable(results.data);
+    },
+    error: function(err) {
+      console.error("CSV 加载失败：", err);
+    }
+  });
+
+  function renderTable(data) {
+    const groupedData = {};
+    data.forEach(row => {
+      const year = row.Year;
+      const title = row.Title_CN || row.Title_JP;
+      if (!groupedData[year]) groupedData[year] = [];
+      if (groupedData[year].length < 10) groupedData[year].push(title);
+    });
+
+    table.innerHTML = '';
+    const years = Object.keys(groupedData).sort((a, b) => a - b);
+
+    years.forEach(year => {
+      const tr = document.createElement('tr');
+      const tdYear = document.createElement('td');
+      tdYear.className = 'year-cell';
+      tdYear.textContent = year;
+      tr.appendChild(tdYear);
+
+      for (let i = 0; i < 10; i++) {
+        const tdAnime = document.createElement('td');
+        tdAnime.className = 'anime-cell';
+        tdAnime.textContent = groupedData[year][i] || "";
+        if (tdAnime.textContent) {
+          tdAnime.onclick = function() {
+            this.classList.toggle('selected');
+            updateCount();
+          };
+        } else tdAnime.style.cursor = 'default';
+        tr.appendChild(tdAnime);
+      }
+      table.appendChild(tr);
+    });
+
+    captureArea.style.display = 'block';
+    saveBox.style.display = 'block';
+  }
+
+  function updateCount() {
+    const selectedCount = document.querySelectorAll('.anime-cell.selected').length;
+    countNum.textContent = selectedCount;
+  }
+
+  function saveAsImage() {
+    const btn = document.querySelector('.btn-save');
+    btn.textContent = "正在生成中...";
+
+    html2canvas(captureArea, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#f8f9fa"
+    }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = `我的动画代际表_${new Date().getTime()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      btn.textContent = "保存为图片分享";
+    });
+  }
+</script>
+</body>
+</html>
